@@ -2,7 +2,7 @@
   "name": "xtendsales-backend",
   "version": "1.0.0",
   "description": "Backend API for XtendSales contact form",
-  "main": "server.js",
+  "main": "api/index.js",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js"
