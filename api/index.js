@@ -54,12 +54,15 @@ app.use((req, res, next) => {
 const createTransporter = () => {
   return nodemailer.createTransporter({
     host: process.env.SMTP_HOST,
-    port: process.env.SMTP_PORT,
+    port: parseInt(process.env.SMTP_PORT) || 587,
     secure: false, // true for 465, false for other ports
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
     },
+    // Essential for serverless functions
+    pool: false,
+    maxConnections: 1,
   });
 };
 
@@ -171,6 +174,11 @@ app.post("/contact", limiter, contactValidation, async (req, res) => {
     });
   } catch (error) {
     console.error("Error sending email:", error);
+    console.error("Error details:", {
+      message: error.message,
+      code: error.code,
+      stack: error.stack,
+    });
     res.status(500).json({
       success: false,
       message:
@@ -212,6 +220,21 @@ app.get("/contact", (req, res) => {
     success: true,
     message: "Contact endpoint is reachable via GET",
     note: "Use POST method to submit contact form",
+  });
+});
+
+// Debug endpoint for environment variables
+app.get("/debug", (req, res) => {
+  res.json({
+    success: true,
+    env: {
+      hasSmtpHost: !!process.env.SMTP_HOST,
+      hasSmtpUser: !!process.env.SMTP_USER,
+      hasSmtpPass: !!process.env.SMTP_PASS,
+      hasFromEmail: !!process.env.FROM_EMAIL,
+      hasToEmail: !!process.env.TO_EMAIL,
+      nodeEnv: process.env.NODE_ENV,
+    },
   });
 });
 
