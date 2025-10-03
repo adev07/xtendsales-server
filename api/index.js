@@ -18,9 +18,11 @@ const limiter = rateLimit({
   message: "Too many requests from this IP, please try again later.",
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => {
+    // Skip rate limiting for health check
+    return req.path === "/health" || req.path === "/";
+  },
 });
-
-app.use("/contact", limiter);
 
 // CORS configuration
 app.use(
@@ -33,6 +35,12 @@ app.use(
 // Body parsing middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Debug middleware
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path} - ${new Date().toISOString()}`);
+  next();
+});
 
 // Create nodemailer transporter
 const createTransporter = () => {
@@ -74,7 +82,7 @@ const contactValidation = [
 ];
 
 // Contact form endpoint
-app.post("/contact", contactValidation, async (req, res) => {
+app.post("/contact", limiter, contactValidation, async (req, res) => {
   try {
     // Check validation results
     const errors = validationResult(req);
@@ -177,6 +185,25 @@ app.get("/", (req, res) => {
       health: "/health",
       contact: "/contact (POST)",
     },
+  });
+});
+
+// Test endpoint to debug routing
+app.get("/test", (req, res) => {
+  res.json({
+    success: true,
+    message: "Test endpoint working",
+    path: req.path,
+    method: req.method,
+  });
+});
+
+// Simple contact test endpoint
+app.get("/contact", (req, res) => {
+  res.json({
+    success: true,
+    message: "Contact endpoint is reachable via GET",
+    note: "Use POST method to submit contact form",
   });
 });
 
